@@ -199,8 +199,16 @@ namespace Microsoft.IdentityModel.Tokens
         }
 #endif
 
-        internal static bool TryConvertToSecurityKey(JsonWebKey webKey, out SecurityKey key)
+        /// <summary>
+        /// This will attempt to convert the <see cref="JsonWebKey"/> to a <see cref="SecurityKey"/>.
+        /// </summary>
+        /// <param name="webKey"><see cref="JsonWebKey"/></param>
+        /// <param name="key"><see cref="SecurityKey"/></param>
+        public static bool TryConvertToSecurityKey(JsonWebKey webKey, out SecurityKey key)
         {
+            if (webKey == null)
+                throw LogHelper.LogArgumentNullException(nameof(webKey));
+
             if (webKey.ConvertedSecurityKey != null)
             {
                 key = webKey.ConvertedSecurityKey;
@@ -256,7 +264,7 @@ namespace Microsoft.IdentityModel.Tokens
                 key = new SymmetricSecurityKey(webKey);
                 return true;
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 if (LogHelper.IsEnabled(EventLogLevel.Error))
                     LogHelper.LogExceptionMessage(new InvalidOperationException(LogHelper.FormatInvariant(LogMessages.IDX10813, LogHelper.MarkAsNonPII(typeof(SymmetricSecurityKey)), webKey, ex), ex));

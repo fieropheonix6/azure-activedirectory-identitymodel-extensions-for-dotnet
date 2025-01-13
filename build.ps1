@@ -87,17 +87,17 @@ WriteSectionFooter("End Environment");
 
 $ErrorActionPreference = "Stop"
 
-WriteSectionHeader("VerifyResourceUsage.pl");
+ WriteSectionHeader("VerifyResourceUsage.pl");
 
-Write-Host ">>> Start-Process -Wait -PassThru -NoNewWindow perl $root\src\VerifyResourceUsage.pl"
-$verifyResourceUsageResult = Start-Process -Wait -PassThru -NoNewWindow perl $root\src\VerifyResourceUsage.pl
+ Write-Host ">>> Start-Process -Wait -PassThru -NoNewWindow powershell $root\tools\VerifyResourceUsage.ps1"
+ $verifyResourceUsageResult = Start-Process -Wait -PassThru -NoNewWindow powershell $root\tools\VerifyResourceUsage.ps1
 
-if($verifyResourceUsageResult.ExitCode -ne 0)
-{
-	throw "VerifyResourceUsage.pl failed."
-}
+ if($verifyResourceUsageResult.ExitCode -ne 0)
+ {
+ 	throw "VerifyResourceUsage.ps1 failed."
+ }
 
-WriteSectionFooter("End VerifyResourceUsage.pl");
+ WriteSectionFooter("End VerifyResourceUsage.ps1");
 
 WriteSectionHeader("Build");
 

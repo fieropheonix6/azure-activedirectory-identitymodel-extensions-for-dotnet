@@ -46,7 +46,7 @@ namespace Microsoft.IdentityModel.Tokens.Tests
 
             // assert
             // compare KDFs are the same and they're matching with expected
-            if (!Utility.AreEqual(((SymmetricSecurityKey)aliceCek).Key, ((SymmetricSecurityKey)bobCek).Key)) 
+            if (!Utility.AreEqual(((SymmetricSecurityKey)aliceCek).Key, ((SymmetricSecurityKey)bobCek).Key))
                 context.AddDiff($"!Utility.AreEqual(aliceCek, bobCek)");
             if (!Utility.AreEqual(((SymmetricSecurityKey)aliceCek).Key, ECDH_ES.DerivedKeyBytes))
                 context.AddDiff($"!Utility.AreEqual(aliceCek, ECDH_ES.DerivedKeyBytes)");
@@ -75,7 +75,7 @@ namespace Microsoft.IdentityModel.Tokens.Tests
             }
         }
 
-        [Theory, MemberData(nameof(AuthenticatedEncryptionTheoryData))]
+        [Theory, MemberData(nameof(AuthenticatedEncryptionTheoryData), DisableDiscoveryEnumeration = true)]
         public void AuthenticatedEncryptionReferenceTest(AuthenticationEncryptionTestParams testParams)
         {
             var context = TestUtilities.WriteHeader("AuthenticatedEncryptionReferenceTest", testParams);
@@ -167,7 +167,7 @@ namespace Microsoft.IdentityModel.Tokens.Tests
             }
         }
 
-        [Theory, MemberData(nameof(KeyWrapTheoryData))]
+        [Theory, MemberData(nameof(KeyWrapTheoryData), DisableDiscoveryEnumeration = true)]
         public void KeyWrapReferenceTest(KeyWrapTestParams testParams)
         {
             if (testParams.Algorithm.Equals(SecurityAlgorithms.Aes128KW, StringComparison.OrdinalIgnoreCase)

@@ -194,7 +194,10 @@ namespace Microsoft.IdentityModel.TestUtils
             get => "http://www.w3.org/";
         }
 
-        public static X509Certificate2 Certificate => new X509Certificate2(Convert.FromBase64String(CertificateData));
+        public static X509Certificate2 Certificate
+        {
+            get => CertificateHelper.LoadX509Certificate(CertificateData);
+        }
 
         public static string CertificateData
         {
@@ -208,7 +211,7 @@ namespace Microsoft.IdentityModel.TestUtils
 
         public static ClaimsIdentity ClaimsIdentity
         {
-            get => new ClaimsIdentity(Claims, AuthenticationType);
+            get => new CaseSensitiveClaimsIdentity(Claims, AuthenticationType);
         }
 
         public static string ClaimsIdentityLabel
@@ -266,7 +269,8 @@ namespace Microsoft.IdentityModel.TestUtils
             get
             {
                 var keyInfo = new KeyInfo();
-                keyInfo.X509Data.Add(new X509Data(new X509Certificate2(Convert.FromBase64String(CertificateData))));
+                X509Certificate2 cert = CertificateHelper.LoadX509Certificate(CertificateData);
+                keyInfo.X509Data.Add(new X509Data(cert));
                 return keyInfo;
             }
         }
@@ -289,6 +293,11 @@ namespace Microsoft.IdentityModel.TestUtils
         public static string Issuer
         {
             get => "http://Default.Issuer.com";
+        }
+
+        public static string CloudInstanceName
+        {
+            get => "microsoftonline.com";
         }
 
         public static IEnumerable<string> Issuers
@@ -388,22 +397,6 @@ namespace Microsoft.IdentityModel.TestUtils
             }.ToString();
         }
 
-        public static string PayloadString
-        {
-            get => new JObject()
-            {
-                { JwtRegisteredClaimNames.Aud, Audience },
-                { JwtRegisteredClaimNames.Azp, Azp },
-                { JwtRegisteredClaimNames.Email, "Bob@contoso.com" },
-                { JwtRegisteredClaimNames.Exp, EpochTime.GetIntDate(Expires).ToString() },
-                { JwtRegisteredClaimNames.GivenName, "Bob" },
-                { JwtRegisteredClaimNames.Iss, Issuer },
-                { JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(IssueInstant).ToString() },
-                { JwtRegisteredClaimNames.Jti, Jti },
-                { JwtRegisteredClaimNames.Nbf, EpochTime.GetIntDate(NotBefore).ToString()},
-            }.ToString(Formatting.None);
-        }
-
         public static List<Claim> PayloadClaims
         {
             get => new List<Claim>()
@@ -458,34 +451,17 @@ namespace Microsoft.IdentityModel.TestUtils
 
         public static Dictionary<string, object> PayloadJsonDictionary
         {
-            get => new Dictionary<string, object>()
-            {
-                { JwtRegisteredClaimNames.Aud, Audience },
-                { JwtRegisteredClaimNames.Iss, Issuer },
-                { "ClaimValueTypes.String", "ClaimValueTypes.String.Value" },
-                { "ClaimValueTypes.Boolean.true", true },
-                { "ClaimValueTypes.Boolean.false", false },
-                { "ClaimValueTypes.Double", 123.4 },
-                { "ClaimValueTypes.DateTime.IS8061", DateTime.TryParse("2019-11-15T14:31:21.6101326Z", out DateTime dateTimeValue1) ? dateTimeValue1.ToUniversalTime() : new DateTime()},
-                { "ClaimValueTypes.DateTime", DateTime.TryParse("2019-11-15", out DateTime dateTimeValue2) ? dateTimeValue2 : new DateTime()},
-                { "ClaimValueTypes.JsonClaimValueTypes.Json1", JObject.Parse(@"{""jsonProperty1"":""jsonvalue1""}") },
-                { "ClaimValueTypes.JsonClaimValueTypes.Json2", JObject.Parse(@"{""jsonProperty2"":""jsonvalue2""}") },
-                { "ClaimValueTypes.JsonClaimValueTypes.JsonNull", "" },
-                { "ClaimValueTypes.JsonClaimValueTypes.JsonArray1", JArray.Parse(@"[1,2,3]") },
-                { "ClaimValueTypes.JsonClaimValueTypes.JsonArray2", JArray.Parse(@"[1,""2"",3]") },
-                { "ClaimValueTypes.JsonClaimValueTypes.Integer1", 1 },
-                { JwtRegisteredClaimNames.Exp, EpochTime.GetIntDate(Expires).ToString() }
-            };
+            get => PayloadJsonClaims.ToDictionary(x => x.Type, x => (object)x.Value);
         }
 
         public static ClaimsIdentity PayloadClaimsIdentity
         {
-            get => new ClaimsIdentity(PayloadClaims, "AuthenticationTypes.Federation");
+            get => new CaseSensitiveClaimsIdentity(PayloadClaims, "AuthenticationTypes.Federation");
         }
 
-        public static Dictionary<string, object> PayloadDictionary
+        public static JObject PayloadAsJObject
         {
-            get => new Dictionary<string, object>()
+            get => new JObject()
             {
                 { JwtRegisteredClaimNames.Aud, Audience },
                 { JwtRegisteredClaimNames.Azp, Azp },
@@ -497,6 +473,42 @@ namespace Microsoft.IdentityModel.TestUtils
                 { JwtRegisteredClaimNames.Jti, Jti },
                 { JwtRegisteredClaimNames.Nbf, EpochTime.GetIntDate(NotBefore).ToString()},
             };
+        }
+
+        public static string PayloadString
+        {
+            get => PayloadAsJObject.ToString(Formatting.None);
+        }
+
+        public static Dictionary<string, object> PayloadDictionary
+        {
+            get => PayloadAsJObject.ToObject<Dictionary<string, object>>();
+        }
+
+        public static JObject PayloadAsJObjectMultipleAudiences
+        {
+            get => new JObject()
+            {
+                { JwtRegisteredClaimNames.Aud, JArray.FromObject(Audiences) },
+                { JwtRegisteredClaimNames.Azp, Azp },
+                { JwtRegisteredClaimNames.Email, "Bob@contoso.com" },
+                { JwtRegisteredClaimNames.Exp, EpochTime.GetIntDate(Expires).ToString() },
+                { JwtRegisteredClaimNames.GivenName, "Bob" },
+                { JwtRegisteredClaimNames.Iss, Issuer },
+                { JwtRegisteredClaimNames.Iat, EpochTime.GetIntDate(IssueInstant).ToString() },
+                { JwtRegisteredClaimNames.Jti, Jti },
+                { JwtRegisteredClaimNames.Nbf, EpochTime.GetIntDate(NotBefore).ToString()},
+            };
+        }
+
+        public static string PayloadStringMultipleAudiences
+        {
+            get => PayloadAsJObjectMultipleAudiences.ToString(Formatting.None);
+        }
+
+        public static Dictionary<string, object> PayloadDictionaryMultipleAudiences
+        {
+            get => PayloadAsJObjectMultipleAudiences.ToObject<Dictionary<string, object>>();
         }
 
         public static Dictionary<string, object> RemoveClaim(this Dictionary<string, object> payloadClaims, string claimName)
@@ -817,20 +829,37 @@ namespace Microsoft.IdentityModel.TestUtils
 
         /// <summary>
         /// SamlClaims require the ability to split into name / namespace
+        /// The <see cref="ClaimTypes.Role"/> claims are added as a list
         /// </summary>
         public static Dictionary<string, object> SamlClaimsDictionary
         {
-            get => new Dictionary<string, object>()
+            get
             {
-                { ClaimTypes.Country, "USA"},
-                { ClaimTypes.NameIdentifier, "Bob" },
-                { ClaimTypes.Email, "Bob@contoso.com" },
-                { ClaimTypes.GivenName, "Bob" },
-                { ClaimTypes.HomePhone, "555.1212" },
-                { ClaimTypes.Role, new List<string>{"Developer", "Sales" } },
-                { ClaimTypes.StreetAddress, "123AnyWhereStreet\r\nSomeTown/r/nUSA" },
-                { ClaimsIdentity.DefaultNameClaimType, "Jean-S�bastien" }
-            };
+                Dictionary<string, object> dictionary = new Dictionary<string, object>();
+
+                foreach (Claim claim in SamlClaims)
+                {
+                    if (dictionary.ContainsKey(claim.Type))
+                    {
+                        if (claim.Type == ClaimTypes.Role)
+                        {
+                            ((List<string>)dictionary[claim.Type]).Add(claim.Value);
+                        }
+                    }
+                    else
+                    {
+                        if (claim.Type == ClaimTypes.Role)
+                        {
+                            dictionary[claim.Type] = new List<string> { claim.Value };
+                        }
+                        else
+                        {
+                            dictionary[claim.Type] = claim.Value;
+                        }
+                    }
+                }
+                return dictionary;
+            }
         }
 
         /// <summary>
@@ -873,7 +902,7 @@ namespace Microsoft.IdentityModel.TestUtils
 
         public static ClaimsIdentity SamlClaimsIdentity
         {
-            get => new ClaimsIdentity(SamlClaims, AuthenticationType);
+            get => new CaseSensitiveClaimsIdentity(SamlClaims, AuthenticationType);
         }
 
         public static SamlConditions SamlConditionsSingleCondition
@@ -925,7 +954,7 @@ namespace Microsoft.IdentityModel.TestUtils
                 IssuedAt = DateTime.UtcNow,
                 NotBefore = DateTime.UtcNow,
                 SigningCredentials = signingCredentials,
-                Subject = claims == null ? ClaimsIdentity : new ClaimsIdentity(claims)
+                Subject = claims == null ? ClaimsIdentity : new CaseSensitiveClaimsIdentity(claims)
             };
         }
 
@@ -940,7 +969,7 @@ namespace Microsoft.IdentityModel.TestUtils
                 IssuedAt = DateTime.UtcNow,
                 NotBefore = DateTime.UtcNow,
                 SigningCredentials = signingCredentials,
-                Subject = claims == null ? ClaimsIdentity : new ClaimsIdentity(claims),
+                Subject = claims == null ? ClaimsIdentity : new CaseSensitiveClaimsIdentity(claims),
             };
 
             if (securityTokenDescriptor.Claims == null)
@@ -965,7 +994,7 @@ namespace Microsoft.IdentityModel.TestUtils
                 IssuedAt = DateTime.UtcNow,
                 NotBefore = DateTime.UtcNow,
                 SigningCredentials = signingCredentials,
-                Subject = claims == null ? ClaimsIdentity : new ClaimsIdentity(claims)
+                Subject = claims == null ? ClaimsIdentity : new CaseSensitiveClaimsIdentity(claims)
             };
         }
 
@@ -992,7 +1021,7 @@ namespace Microsoft.IdentityModel.TestUtils
                 {
                     KeyInfo = KeyInfo,
                     SignedInfo = SignedInfo,
-                    SignatureValue = "OaTq3jGqbPLUVROvhiqV+PneMwdu6iZgVv7vbW++wEk4tSXoqEUkY+b/M2ZzHFy0M/k33migp3s0w+Ff1vNHRI0uT8Zs1D+EdI/Oz4Pu3FwPA/UK+8qe+JTRAOhdN5H7Wv4c0p1nrWJlVlT5WWCUe2uRSpojS2+D+KC1gG/DiDqK5gWgQt/7Z0HV8ml6C0PTqXWvZcYc1u49Y3tNEPOUuSXGzSZOAfhEAMdQ6+qC+126wcbSFK5ww1aOI2K6Nk3u8sxJUXHdUXs92DKvLemcaHXw0yDNUNi/izVldy3yu6VEDEflCJkj1+yvB52U+EpvG/7IGwY66QceVbu/1FFLFA=="
+                    SignatureValue = "kzGIa0ZwE1Y7CYZ3hZHdFLGEQ6LvTdoKYSr+jClEdoL8l0bRf0Mkp7zsp0uCPyoZHKVBatU7otEmbciu9FWNMSXmpiDj9eSL/eNqpJ0sRkaNPyM3AqR2zy7TG2481K4SWZfo5EahrSat0glEUC6i3sxojjLb8DRq8ETYO1JsNhLOHQjKWlBEBZ04rAcz/kWXt0N1CQne4+GozQtiaMDvN/PXeqwiEYHbS1Gr5G16wHdiFZNYylH2pW14+t5t/eIZX8c/VJNT5uM09KHeBSMEn7Uksp2qx1brKP1K9SULzke0Pgx+lIJZgVndGbviGd5UP4ufovexs4F5TkhI7Pel6A=="
                 };
                 return signature;
             }
@@ -1020,7 +1049,7 @@ namespace Microsoft.IdentityModel.TestUtils
                 {
                     KeyInfo = KeyInfo,
                     SignedInfo = SignedInfoReferenceWithId,
-                    SignatureValue = "fqbb3WVUTLu/ihWXHUYgPWO5rgnm9AuwAT8YeiWiood/z+ObWpTwxs42be4HIDac9U94hR05rfLOR+0WxmlzhJp7/fye50VHMKex5kAAp9aCMAzCvDkfNzhMUN3WOHGEFOs4tmxrR0TBV6j+KNnjyDs3AUtdzZnZB+QmOJAlZubdOzWk/D0CGSXSgMmqYgmvH/GZGQWxQtbGMFuB29VCR7moegGN/9VAo/K7Z22xmfUWNKWVHB0OUC8FI36sadVnnUvcKnUo3M3pnQwbEWYz/+rMSYYrboM4dOKEqxZCgFXKou08Pz0MtNe2VwketLbJrKSmuEJOgVnXrzPTwlVSpw=="
+                    SignatureValue = "BOMo5aCr+YIjOq+lmPj8be8/6u8iXJFXuJskeWaYk1iNadUhhUPcSHeFv8XmOBIXV7Yrvk2WiVoBKawJh79iqRrVpJmdpHTxuukUua6iijxEEhwjYGLneleVgBzDTnk2os21WThYSEXmhi52z4Or0eq29vObOlRN3c2VlqDba8avu8jMNqZuKWsptxLDS1q0JfE8zu7Srs9y2GD7SULbWYpsl2VIO3ZCV+0/YWnBHQ09Ee1QKP18HMNr3jgrmpNj165olYKnn+Vr2YDEBSuNX1mxdw2bqAbpEeWITmmIkW2KDivxOtL2lOZEC6QnEVidWr1oyFUb+srKAlmksiy3wA=="
                 };
                 return signature;
             }
